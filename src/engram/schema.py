@@ -13,7 +13,15 @@ CREATE TABLE IF NOT EXISTS memory_index (
     line_start   INTEGER,
     line_end     INTEGER,
     session_date TEXT,
-    body         TEXT
+    body         TEXT,
+    -- NEXUS:PORTABLE — multi-user columns (owner-only when empty/NULL; filled on create/edit)
+    user_id      TEXT,                          -- person_id who owns/authored this node
+    workspace_id TEXT,                          -- project scope (NULL = global)
+    access_tier  TEXT DEFAULT 'global',         -- global|workspace|private
+    created_by   TEXT,                          -- person_id who first created
+    created_at   REAL,                          -- unix timestamp
+    updated_by   TEXT,                          -- person_id who last edited
+    updated_at   REAL                           -- unix timestamp
 );
 
 CREATE TABLE IF NOT EXISTS memory_sections (
@@ -22,7 +30,10 @@ CREATE TABLE IF NOT EXISTS memory_sections (
     heading    TEXT,
     line_start INTEGER,
     line_end   INTEGER,
-    content    TEXT
+    content    TEXT,
+    -- inherit scope from node_id, cached for query efficiency (denormalized)
+    access_tier TEXT DEFAULT 'global',
+    workspace_id TEXT
 );
 
 CREATE TABLE IF NOT EXISTS memory_relations (
@@ -56,4 +67,9 @@ CREATE TRIGGER IF NOT EXISTS fts_au AFTER UPDATE ON memory_index BEGIN
     INSERT INTO memory_fts(rowid, id, description, body)
     VALUES (new.rowid, new.id, new.description, new.body);
 END;
+
+CREATE INDEX IF NOT EXISTS idx_mi_user ON memory_index(user_id);
+CREATE INDEX IF NOT EXISTS idx_mi_access ON memory_index(access_tier);
+CREATE INDEX IF NOT EXISTS idx_mi_workspace ON memory_index(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_ms_access ON memory_sections(access_tier);
 """

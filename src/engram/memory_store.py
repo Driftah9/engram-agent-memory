@@ -149,9 +149,11 @@ class MemoryStore:
         parsed = [self._parse_file(f) for f in files]
         manifest = {}
 
+        now = time.time()
         for p in parsed:
+            # New multi-user columns: existing markdown nodes default to owner/global
             conn.execute(
-                "INSERT OR REPLACE INTO memory_index VALUES (?,?,?,?,?,?,?,?,?)",
+                "INSERT OR REPLACE INTO memory_index VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     p["id"],
                     p["type"],
@@ -162,18 +164,27 @@ class MemoryStore:
                     p["line_end"],
                     p["session_date"],
                     p["body"],
+                    "owner",           # user_id
+                    None,              # workspace_id
+                    "global",          # access_tier
+                    "owner",           # created_by
+                    now,               # created_at
+                    "owner",           # updated_by
+                    now,               # updated_at
                 ),
             )
 
             for sec in p["sections"]:
                 conn.execute(
-                    "INSERT INTO memory_sections (node_id, heading, line_start, line_end, content) VALUES (?,?,?,?,?)",
+                    "INSERT INTO memory_sections (node_id, heading, line_start, line_end, content, access_tier, workspace_id) VALUES (?,?,?,?,?,?,?)",
                     (
                         p["id"],
                         sec["heading"],
                         sec["line_start"],
                         sec["line_end"],
                         sec.get("content", ""),
+                        "global",    # inherit from node
+                        None,        # inherit from node
                     ),
                 )
 
@@ -227,20 +238,22 @@ class MemoryStore:
         term: str,
         type_filter: Optional[str] = None,
         limit: int = 20,
+        scope: Optional[object] = None,
     ) -> List[Dict]:
-        """Full-text search with optional type filtering.
+        """Full-text search with optional type filtering and data-scope visibility control.
 
         Args:
             term: Search term (will be sanitized)
             type_filter: Optional type ('user', 'feedback', 'project', 'reference')
             limit: Maximum results to return
+            scope: Optional data_scope.ScopeFilter for multi-user visibility. None = owner (no filtering).
 
         Returns:
             List of knowledge nodes matching the search
         """
         conn = self.connect()
         try:
-            return fts_query(conn, term, type_filter=type_filter, limit=limit)
+            return fts_query(conn, term, type_filter=type_filter, limit=limit, scope=scope)
         finally:
             conn.close()
 
@@ -249,20 +262,22 @@ class MemoryStore:
         term: str,
         exclude_ids: Optional[List[str]] = None,
         limit: int = 20,
+        scope: Optional[object] = None,
     ) -> List[Dict]:
-        """Find sections containing a term.
+        """Find sections containing a term, with optional data-scope filtering.
 
         Args:
             term: Search term
             exclude_ids: Node IDs to exclude (default: ['MEMORY', 'SCHEMA'])
             limit: Maximum results to return
+            scope: Optional data_scope.ScopeFilter for multi-user visibility. None = owner.
 
         Returns:
             List of sections matching the search
         """
         conn = self.connect()
         try:
-            return section_query(conn, term, exclude_ids=exclude_ids, limit=limit)
+            return section_query(conn, term, exclude_ids=exclude_ids, limit=limit, scope=scope)
         finally:
             conn.close()
 
