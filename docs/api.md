@@ -2,7 +2,7 @@
 
 ## MemoryStore
 
-Main interface for engram-memory.
+Main interface for engram-agent-memory.
 
 ### `__init__(knowledge_dir, db_path=None)`
 

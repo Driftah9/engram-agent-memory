@@ -1,4 +1,4 @@
-"""Query helpers for engram-memory. NEXUS:PORTABLE."""
+"""Query helpers for engram-agent-memory. NEXUS:PORTABLE."""
 
 import sqlite3
 from typing import List, Dict, Optional

@@ -1,4 +1,4 @@
-"""Pytest configuration and fixtures for engram-memory tests."""
+"""Pytest configuration and fixtures for engram-agent-memory tests."""
 
 import tempfile
 from pathlib import Path

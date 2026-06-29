@@ -1,4 +1,4 @@
-"""SQLite schema for engram-memory."""
+"""SQLite schema for engram-agent-memory."""
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;

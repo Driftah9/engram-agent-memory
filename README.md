@@ -1,8 +1,8 @@
-# engram-memory
+# engram-agent-memory
 
 **Give your AI agent a memory that survives anything.**
 
-engram-memory lets AI agents store knowledge, look it up instantly, and keep working even if the database goes down — because your knowledge is always backed by plain text files.
+engram-agent-memory lets AI agents store knowledge, look it up instantly, and keep working even if the database goes down — because your knowledge is always backed by plain text files.
 
 ---
 
@@ -10,7 +10,7 @@ engram-memory lets AI agents store knowledge, look it up instantly, and keep wor
 
 AI agents are forgetful by default. Every session starts fresh. Workarounds like dumping everything into a context window are slow, expensive, and hit limits fast.
 
-engram-memory gives your agent a proper knowledge base:
+engram-agent-memory gives your agent a proper knowledge base:
 - **Store** what it learns, organized by type
 - **Search** it in milliseconds
 - **Recover** automatically if anything breaks
@@ -19,7 +19,7 @@ engram-memory gives your agent a proper knowledge base:
 
 ## How it works
 
-You keep your knowledge in simple markdown files — one topic per file, organized with a few lines of header info. engram-memory builds a fast search index on top of those files, so your agent can find exactly what it needs without reading everything.
+You keep your knowledge in simple markdown files — one topic per file, organized with a few lines of header info. engram-agent-memory builds a fast search index on top of those files, so your agent can find exactly what it needs without reading everything.
 
 If the index ever fails or gets corrupted, the agent falls back to a backup index file that never goes down. No data loss, no downtime.
 
@@ -106,7 +106,7 @@ hits = store.smart_recall("what's the user's spending situation?")
 
 ## What kind of knowledge can it store?
 
-engram-memory uses four categories to keep things organized:
+engram-agent-memory uses four categories to keep things organized:
 
 | Type | What goes here | Examples |
 |---|---|---|
@@ -141,7 +141,7 @@ Runs entirely on your machine. No APIs, no cloud services, no vendor lock-in. Ju
 
 ---
 
-## When to use engram-memory
+## When to use engram-agent-memory
 
 **Good fit:**
 - Single AI agent that needs to remember things across sessions

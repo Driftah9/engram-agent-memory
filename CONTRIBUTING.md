@@ -1,4 +1,4 @@
-# Contributing to engram-memory
+# Contributing to engram-agent-memory
 
 Thanks for your interest in contributing! This document covers how to submit quality work.
 

@@ -2,7 +2,7 @@
 
 ## Design overview
 
-engram-memory implements a **dual-layer knowledge system**: markdown files as source of truth, SQLite as query index, with a manifest JSON enabling zero-DB recovery.
+engram-agent-memory implements a **dual-layer knowledge system**: markdown files as source of truth, SQLite as query index, with a manifest JSON enabling zero-DB recovery.
 
 ```
 Markdown files (human-readable, version-controlled)
@@ -182,7 +182,7 @@ Memory footprint:
 - Type filtering speeds up queries
 - Reflects how agents actually think about knowledge
 
-## Extending engram-memory
+## Extending engram-agent-memory
 
 ### Custom knowledge types
 
@@ -209,7 +209,7 @@ The `build()` process will include them in the manifest.
 
 ### Vector search integration
 
-engram-memory intentionally doesn't include embeddings. To add vector search:
+engram-agent-memory intentionally doesn't include embeddings. To add vector search:
 
 1. Extend `MemoryStore` with an optional `embeddings_model`
 2. In `build()`, compute embeddings for each section
@@ -226,7 +226,7 @@ This keeps the core lightweight while allowing opt-in extensions.
 - **No native vector search**: Use external library if needed
 - **Type system is simple**: 4 fixed types, not extensible in code
 
-These are intentional — engram-memory targets single-agent systems or small teams. For larger scales, consider adding a separate service layer.
+These are intentional — engram-agent-memory targets single-agent systems or small teams. For larger scales, consider adding a separate service layer.
 
 ## Future directions
 

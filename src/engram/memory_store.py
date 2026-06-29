@@ -1,4 +1,4 @@
-"""MemoryStore — the main interface for engram-memory."""
+"""MemoryStore — the main interface for engram-agent-memory."""
 
 import sqlite3
 import json

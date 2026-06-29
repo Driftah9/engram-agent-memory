@@ -1,5 +1,5 @@
 """
-engram-memory: Persistent, queryable knowledge storage for AI agents.
+engram-agent-memory: Persistent, queryable knowledge storage for AI agents.
 
 Markdown source + SQLite + manifest fallback. Survives database failures.
 """

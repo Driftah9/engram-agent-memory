@@ -1,11 +1,11 @@
-# engram-memory — Agent Instructions
+# engram-agent-memory — Agent Instructions
 
 Quick reference for working on this project.
 
 ## Project structure
 
 ```
-engram-memory/
+engram-agent-memory/
 ├── src/engram/              # Main package
 │   ├── __init__.py
 │   ├── memory_store.py      # MemoryStore class (main interface)
