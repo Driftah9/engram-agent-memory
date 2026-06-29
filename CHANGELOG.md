@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Packaging: PyPI distribution name is **`engram-agent-memory`** (`engram-memory` is
+  taken by an unrelated project). The import name is unchanged: `from engram import ...`.
 - Decoupled the library from any install location: optional multi-user scoping now
   imports a plain `data_scope` module from the host app's path if present, instead of
   hard-coding `/home/claude` and `adapters.core`. The library makes no assumption

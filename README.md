@@ -39,20 +39,23 @@ Your markdown files
 
 ### Install
 
-Install from source (the `engram-memory` name on PyPI is an unrelated project):
+```bash
+pip install engram-agent-memory
+```
+
+> The distribution name is **`engram-agent-memory`** (the `engram-memory` name on PyPI
+> belongs to an unrelated project). The import name is just `engram`.
+
+Or install from source:
 
 ```bash
 pip install git+https://github.com/Driftah9/engram-memory.git
-```
-
-Or clone and install editable:
-
-```bash
+# or, editable:
 git clone https://github.com/Driftah9/engram-memory.git
 cd engram-memory && pip install -e .
 ```
 
-Pure standard library — no runtime dependencies.
+Pure standard library — no runtime dependencies. Import with `from engram import ...`.
 
 ### Create a knowledge file
 
