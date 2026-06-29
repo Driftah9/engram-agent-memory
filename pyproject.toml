@@ -47,8 +47,8 @@ Issues = "https://github.com/Driftah9/engram-agent-memory/issues"
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-[tool.setuptools.packages]
-find = {}
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.black]
 line-length = 100
