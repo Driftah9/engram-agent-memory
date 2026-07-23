@@ -1,4 +1,4 @@
-"""Query helpers for engram-agent-memory. NEXUS:PORTABLE."""
+"""Query helpers for engram-memory. NEXUS:PORTABLE."""
 
 import sqlite3
 from typing import List, Dict, Optional
@@ -6,15 +6,16 @@ from typing import List, Dict, Optional
 from .sanitizer import sanitize_fts
 
 
-# Optional multi-user scope filtering. If the host application provides a `data_scope`
-# module on the import path (exposing `scope_sql(scope, table_alias)`), it is used to
-# build visibility WHERE-clauses; otherwise scoping is ignored (single-user / owner
-# view). The library makes NO assumption about where it is installed.
+# Import scope filtering (optional; if data_scope not available, queries ignore scope).
+# Tries absolute path first (/home/claude), then falls back to None (no scope).
 data_scope = None
 try:
-    import data_scope as _data_scope
+    import sys
+    if "/home/claude" not in sys.path:
+        sys.path.insert(0, "/home/claude")
+    from adapters.core import data_scope as _data_scope
     data_scope = _data_scope
-except Exception:
+except (ImportError, ModuleNotFoundError):
     pass
 
 
@@ -38,11 +39,10 @@ def fts_query(
         List of dicts with keys: id, type, file_name, line_start, line_end, access_tier, workspace_id
 
     Examples:
-        >>> results = fts_query(conn, "budget")
-        >>> results = fts_query(conn, "onboarding", type_filter="feedback", limit=10)
-        >>> # If the host app provides a data_scope module:
-        >>> from data_scope import visible_scope
-        >>> scope = visible_scope("alice", "guest", {"project-x": "read"})
+        >>> results = fts_query(conn, "SSDI")
+        >>> results = fts_query(conn, "Mattermost", type_filter="feedback", limit=10)
+        >>> from adapters.core.data_scope import visible_scope
+        >>> scope = visible_scope("wizz", "guest", {"website-design": "read"})
         >>> scoped_results = fts_query(conn, "project", scope=scope)
     """
     safe = sanitize_fts(term)
@@ -103,12 +103,11 @@ def section_query(
                                  access_tier, workspace_id
 
     Examples:
-        >>> sections = section_query(conn, "budget")
+        >>> sections = section_query(conn, "SSDI")
         >>> sections = section_query(conn, "multi-user")        # finds "multi user" too
-        >>> # If the host app provides a data_scope module:
-        >>> from data_scope import visible_scope
-        >>> scope = visible_scope("alice", "guest", {"project-x": "read"})
-        >>> sections = section_query(conn, "renewal date", scope=scope)
+        >>> from adapters.core.data_scope import visible_scope
+        >>> scope = visible_scope("wizz", "guest", {"website": "read"})
+        >>> sections = section_query(conn, "priority partners", scope=scope)
     """
     exclude = exclude_ids or ["MEMORY", "SCHEMA"]
     placeholders = ",".join("?" * len(exclude))

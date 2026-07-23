@@ -1,4 +1,4 @@
-"""SQLite schema for engram-agent-memory."""
+"""SQLite schema for engram-memory."""
 
 SCHEMA = """
 PRAGMA journal_mode=WAL;
@@ -72,4 +72,14 @@ CREATE INDEX IF NOT EXISTS idx_mi_user ON memory_index(user_id);
 CREATE INDEX IF NOT EXISTS idx_mi_access ON memory_index(access_tier);
 CREATE INDEX IF NOT EXISTS idx_mi_workspace ON memory_index(workspace_id);
 CREATE INDEX IF NOT EXISTS idx_ms_access ON memory_sections(access_tier);
+
+-- Vector embeddings for semantic search (section-level, 768-dim float32 vectors)
+CREATE TABLE IF NOT EXISTS memory_vectors (
+    section_id   INTEGER PRIMARY KEY,
+    embedding    BLOB NOT NULL,
+    embedding_model TEXT DEFAULT 'nomic-embed-text',
+    created_at   REAL
+);
+
+CREATE INDEX IF NOT EXISTS idx_mv_section ON memory_vectors(section_id);
 """

@@ -5,6 +5,35 @@ All notable changes to engram-agent-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] — 2026-07-23
+
+### Added
+
+- **Incremental indexing**: `build(full=False)` now detects changed/new/deleted files and
+  only re-parses what changed (vs. full rebuild on every call). Tracked via `.engram_state.json`
+  (file mtimes). Full rebuild available as `build(full=True)` for repair/restart.
+  **Performance gain at scale:** 228 files, 710ms full → 36ms incremental (no changes).
+- **Manifest scope filtering**: `manifest_query()` now accepts optional `scope` parameter
+  for multi-user visibility control (same as `query()` and `section_query()`), and manifest
+  now carries `access_tier`, `workspace_id`, `user_id` fields for ACL enforcement.
+- **Semantic search (hybrid)**: `hybrid_query(term)` combines FTS5 keyword search with
+  vector similarity (768-dim embeddings via local Ollama, model-agnostic Ollama HTTP API).
+  Embeddings stored as blobs in new `memory_vectors` table. Graceful fallback to FTS-only
+  if embeddings unavailable (e.g., Ollama offline). Scoring: keyword match + semantic
+  cosine similarity, sorted by combined score.
+- **Vector schema**: New `memory_vectors` table (section_id, embedding blob, model, created_at).
+
+### Changed
+
+- `build()` now accepts `full: bool = False` parameter (backward compatible).
+- `MemoryStore.__init__()` creates `.engram_state.json` for incremental tracking.
+- `memory_store.py` adds 4 new methods: `_get_embedding()`, `_vector_to_bytes()`,
+  `_bytes_to_vector()`, `_cosine_similarity()`, `hybrid_query()`.
+
+### Fixed
+
+- Manifest fallback now enforces data scope (was bypassing ACL in DB-down mode).
+
 ## [0.2.0] — 2026-06-29
 
 ### Added
