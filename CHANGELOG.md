@@ -27,12 +27,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `build()` now accepts `full: bool = False` parameter (backward compatible).
 - `MemoryStore.__init__()` creates `.engram_state.json` for incremental tracking.
-- `memory_store.py` adds 4 new methods: `_get_embedding()`, `_vector_to_bytes()`,
-  `_bytes_to_vector()`, `_cosine_similarity()`, `hybrid_query()`.
+- `memory_store.py` adds new methods: `_get_embedding()`, `_vector_to_bytes()`,
+  `_bytes_to_vector()`, `_cosine_similarity()`, `hybrid_query()`, `smart_recall()`
+  (method wrapper over the packaged `recall.smart_recall`).
+- Incremental build rebuilds the mtime-tracking state fresh from a directory scan
+  each run, decoupling state keys (relative paths) from node IDs (frontmatter names).
 
 ### Fixed
 
 - Manifest fallback now enforces data scope (was bypassing ACL in DB-down mode).
+- **Incremental deletion correctness**: deleted files are now resolved to node IDs
+  via the manifest (`file_path` → id) instead of assuming `id == filename stem`.
+  A node whose frontmatter `name` differed from its filename was not being removed
+  from the index (or re-indexed on change) under incremental builds. Verified with
+  a dedicated regression test.
+
+### Tests
+
+- Added `tests/test_v030_features.py` — 11 tests covering incremental indexing
+  (no-change / changed-file / deleted-file / full-rebuild), manifest scope fields,
+  and hybrid search in its Ollama-absent (FTS-only) fallback path. Full suite: 25
+  passed, 6 skipped.
 
 ## [0.2.0] — 2026-06-29
 

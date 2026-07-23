@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 # Distribution name (PyPI). The import package stays `engram` (see [tool.setuptools]).
 # `engram-memory` was unavailable on PyPI, so the distribution is `engram-agent-memory`.
 name = "engram-agent-memory"
-version = "0.2.0"
+version = "0.3.0"
 description = "Persistent, queryable knowledge storage for AI agents. Markdown source + SQLite + manifest fallback."
 readme = "README.md"
 requires-python = ">=3.9"

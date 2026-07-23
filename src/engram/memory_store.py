@@ -54,9 +54,12 @@ class MemoryStore:
     def _detect_changes(self) -> Tuple[List[Path], List[str], List[Path]]:
         """Detect changed, deleted, and new files since last build.
 
-        Returns: (changed_paths, deleted_node_ids, new_paths)
+        Returns: (changed_paths, deleted_rel_paths, new_paths)
           changed_paths: files that were modified since last build
-          deleted_node_ids: node IDs whose files no longer exist
+          deleted_rel_paths: relative paths whose files no longer exist
+                             (resolved to node IDs by the caller via the manifest,
+                             since a node's id is its frontmatter `name`, which may
+                             differ from the filename stem)
           new_paths: files that didn't exist before
         """
         old_state = self._read_state()
@@ -81,14 +84,15 @@ class MemoryStore:
             elif old_state[rel_path] != mtime:
                 changed.append(f)
 
-        # Detect deleted files (files in old state but not in new scan)
-        deleted_ids = []
-        for old_rel_path, _ in old_state.items():
-            if old_rel_path not in new_state:
-                node_id = Path(old_rel_path).stem
-                deleted_ids.append(node_id)
+        # Detect deleted files (files in old state but not in new scan).
+        # Return relative paths — the caller resolves them to node IDs via the
+        # manifest, because a node's id is its frontmatter `name`, not the stem.
+        deleted_rel_paths = [
+            old_rel_path for old_rel_path in old_state
+            if old_rel_path not in new_state
+        ]
 
-        return changed, deleted_ids, new
+        return changed, deleted_rel_paths, new
 
     def _parse_file(self, path: Path) -> Dict:
         """Parse a single markdown file into a knowledge node."""
@@ -211,8 +215,8 @@ class MemoryStore:
 
         # Detect changes (or skip if full rebuild)
         if not full and self.db_path.exists():
-            changed, deleted_ids, new = self._detect_changes()
-            if not changed and not deleted_ids and not new:
+            changed, deleted_rel_paths, new = self._detect_changes()
+            if not changed and not deleted_rel_paths and not new:
                 # No changes detected
                 return {
                     "files": len(self._read_state()),
@@ -225,6 +229,13 @@ class MemoryStore:
             to_parse = changed + new
             parsed = [self._parse_file(f) for f in to_parse]
             manifest = json.loads(self.manifest_path.read_text()) if self.manifest_path.exists() else {}
+            # Resolve deleted relative paths → node IDs via the manifest, since a
+            # node's id is its frontmatter `name`, which may differ from the stem.
+            deleted_abs = {str(self.knowledge_dir / rp) for rp in deleted_rel_paths}
+            deleted_ids = [
+                node_id for node_id, meta in manifest.items()
+                if meta.get("file_path") in deleted_abs
+            ]
             is_incremental = True
         else:
             # Full rebuild: parse all files
@@ -342,33 +353,20 @@ class MemoryStore:
         elapsed = time.perf_counter() - t0
         conn.close()
 
-        # Write manifest and state
+        # Write manifest and state. State is always rebuilt fresh from the current
+        # directory scan (mtime stat is cheap) — this avoids coupling state keys
+        # (relative paths) to node IDs (frontmatter names), which can differ, and
+        # naturally drops deleted files since they no longer appear in the scan.
         self.manifest_path.write_text(json.dumps(manifest, indent=2))
-        if is_incremental:
-            state = self._read_state()
-            for p in parsed:
-                # Update state for re-parsed files
-                for f in self.knowledge_dir.rglob("*.md"):
-                    if f.stem == p["id"]:
-                        rel_path = str(f.relative_to(self.knowledge_dir))
-                        state[rel_path] = self._get_file_mtime(f)
-            for node_id in deleted_ids:
-                # Remove deleted entries from state
-                to_remove = [k for k, v in state.items() if Path(k).stem == node_id]
-                for k in to_remove:
-                    del state[k]
-            self._write_state(state)
-        else:
-            # Full rebuild: write complete state
-            state = {}
-            for f in self.knowledge_dir.rglob("*.md"):
-                if not any(
-                    part.startswith(".")
-                    for part in f.relative_to(self.knowledge_dir).parts[:-1]
-                ):
-                    rel_path = str(f.relative_to(self.knowledge_dir))
-                    state[rel_path] = self._get_file_mtime(f)
-            self._write_state(state)
+        state = {}
+        for f in self.knowledge_dir.rglob("*.md"):
+            if not any(
+                part.startswith(".")
+                for part in f.relative_to(self.knowledge_dir).parts[:-1]
+            ):
+                rel_path = str(f.relative_to(self.knowledge_dir))
+                state[rel_path] = self._get_file_mtime(f)
+        self._write_state(state)
 
         return {
             "files": len(manifest),
@@ -481,6 +479,23 @@ class MemoryStore:
         conn.close()
 
         return [r for _, r in scored[:limit]]
+
+    def smart_recall(self, query: str, k: int = 4) -> List[Dict]:
+        """NL-robust recall: stopword strip + keyword OR-match + best section.
+
+        Thin method wrapper over the packaged ``recall.smart_recall`` helper, so a
+        raw natural-language sentence retrieves precise, line-pointed hits instead
+        of AND-matching nothing under ``query()``. Each hit: {text, source, score}.
+
+        Args:
+            query: Natural-language query.
+            k: Maximum number of hits to return.
+
+        Returns:
+            Up to k hits, each with keys text, source, score.
+        """
+        from .recall import smart_recall as _smart_recall
+        return _smart_recall(self, query, k=k)
 
     def section_query(
         self,
