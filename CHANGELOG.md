@@ -5,6 +5,35 @@ All notable changes to engram-agent-memory will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-07-26
+
+### Changed
+
+- **`smart_recall` is now hybrid with a relevance floor** (breaking behavior change, same API).
+  Every indexed section is scored on keyword overlap + vector similarity, where the vector
+  signal is a **z-score against the query's own candidate distribution** (absolute cosine
+  thresholds don't discriminate — embedding similarities compress into a narrow band).
+  Only sections clearing the floor are returned, trimmed by a top-gap: results are
+  **variable-k** — an empty or short result list is correct behavior, never padded to k
+  with weak single-keyword matches or bare node descriptions. Calibrated against a labeled
+  operator benchmark: strict file-level precision 24% → 61%, injected-hit volume −56%.
+- **Node-level embeddings for every node**: sectionless files (no `## ` headings) embed
+  their body — previously they had **no vectors at all** and were invisible to semantic
+  recall (45% of a real-world store); sectioned files embed their frontmatter *description*,
+  giving paraphrased/conceptual queries a concept channel when no section's literal text
+  matches. Stored under the negative-id convention `memory_vectors.section_id = -(memory_index
+  rowid)`; written at ingest, no schema change.
+- **Scope-import path is env-driven**: the optional `data_scope` integration now looks at
+  `ENGRAM_ADAPTERS_ROOT` instead of a hardcoded operator path.
+
+### Fixed
+
+- **Incremental-ingest vector hygiene**: incremental `build()` now purges the affected
+  nodes' section vectors and node-level vectors *before* the delete cascade frees their
+  rowids — previously a freed rowid could be reused by a new section while still carrying
+  the old row's embedding (silent stale-vector corruption when the embedding backend was
+  down at re-embed time).
+
 ## [0.3.0] — 2026-07-23
 
 ### Added

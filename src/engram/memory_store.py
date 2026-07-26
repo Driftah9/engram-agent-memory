@@ -264,6 +264,20 @@ class MemoryStore:
             affected_ids = [p["id"] for p in parsed] + deleted_ids
             if affected_ids:
                 placeholders = ",".join("?" * len(affected_ids))
+                # memory_vectors has no FK cascade — purge vectors for the affected
+                # nodes' sections AND their node-level (-rowid) vectors BEFORE the
+                # cascade frees those rowids, else stale embeddings can attach to
+                # reused rowids (silent corruption when Ollama is down at re-embed).
+                conn.execute(
+                    f"DELETE FROM memory_vectors WHERE section_id IN "
+                    f"(SELECT rowid FROM memory_sections WHERE node_id IN ({placeholders}))",
+                    affected_ids,
+                )
+                conn.execute(
+                    f"DELETE FROM memory_vectors WHERE section_id IN "
+                    f"(SELECT -rowid FROM memory_index WHERE id IN ({placeholders}))",
+                    affected_ids,
+                )
                 conn.execute(f"DELETE FROM memory_index WHERE id IN ({placeholders})", affected_ids)
                 # FTS and sections/relations cascade via ON DELETE CASCADE
 
@@ -318,6 +332,28 @@ class MemoryStore:
                             "INSERT OR REPLACE INTO memory_vectors (section_id, embedding, embedding_model, created_at) VALUES (?,?,?,?)",
                             (section_id, vec_bytes, "nomic-embed-text", now),
                         )
+
+            # EVERY node gets a NODE-LEVEL embedding so hybrid recall has a
+            # concept channel: sectionless nodes embed their body (they have no
+            # section vectors at all), sectioned nodes embed their DESCRIPTION —
+            # the hand-written conceptual summary that paraphrased queries match
+            # when no section's literal text does. Stored in memory_vectors under
+            # section_id = -(memory_index rowid) — the negative-id convention
+            # recall.py reads; no collision with section rowids (always positive).
+            if p["sections"]:
+                node_text = (p["description"] or "").strip()
+            else:
+                node_text = (p["body"] or p["description"] or "").strip()
+            if node_text and len(node_text) > 10:
+                vec = self._get_embedding(node_text[:4000])
+                if vec:
+                    node_rowid = conn.execute(
+                        "SELECT rowid FROM memory_index WHERE id=?", (p["id"],)
+                    ).fetchone()[0]
+                    conn.execute(
+                        "INSERT OR REPLACE INTO memory_vectors (section_id, embedding, embedding_model, created_at) VALUES (?,?,?,?)",
+                        (-node_rowid, self._vector_to_bytes(vec), "nomic-embed-text", now),
+                    )
 
             for rel in p["relations"]:
                 conn.execute(
@@ -607,9 +643,11 @@ class MemoryStore:
         # Try to import scope filtering (same as query.py: graceful fallback)
         data_scope = None
         try:
+            import os
             import sys
-            if "/home/claude" not in sys.path:
-                sys.path.insert(0, "/home/claude")
+            _root = os.environ.get("ENGRAM_ADAPTERS_ROOT")
+            if _root and _root not in sys.path:
+                sys.path.insert(0, _root)
             from adapters.core import data_scope as _data_scope
             data_scope = _data_scope
         except (ImportError, ModuleNotFoundError):

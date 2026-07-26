@@ -7,12 +7,14 @@ from .sanitizer import sanitize_fts
 
 
 # Import scope filtering (optional; if data_scope not available, queries ignore scope).
-# Tries absolute path first (/home/claude), then falls back to None (no scope).
+# Set ENGRAM_ADAPTERS_ROOT to make an external adapters package importable.
 data_scope = None
 try:
+    import os
     import sys
-    if "/home/claude" not in sys.path:
-        sys.path.insert(0, "/home/claude")
+    _root = os.environ.get("ENGRAM_ADAPTERS_ROOT")
+    if _root and _root not in sys.path:
+        sys.path.insert(0, _root)
     from adapters.core import data_scope as _data_scope
     data_scope = _data_scope
 except (ImportError, ModuleNotFoundError):
